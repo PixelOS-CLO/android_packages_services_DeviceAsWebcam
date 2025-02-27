@@ -58,4 +58,6 @@
     <dimen name="list_item_radio_button_margin">8dp</dimen>
 
     <dimen name="checkbox_padding">8dp</dimen>
+
+    <dimen name="hq_button_min_touch_target_size">48dp</dimen>
 </resources>

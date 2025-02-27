@@ -29,6 +29,7 @@ import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Paint;
+import android.graphics.Rect;
 import android.graphics.SurfaceTexture;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
@@ -50,6 +51,7 @@ import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.Surface;
 import android.view.TextureView;
+import android.view.TouchDelegate;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
@@ -401,6 +403,39 @@ public class DeviceAsWebcamPreview extends FragmentActivity {
                         /*bottom=*/displayCutout.getSafeInsetTop());
                 break;
         }
+
+        // Ensure the touch target of HQ button is at least the required size.
+        View hqButtonParent = (View) mHighQualityToggleButton.getParent();
+        // Post to the parent so we get an accurate number from getHitRect.
+        hqButtonParent.post(
+                () -> {
+                    int minSize =
+                            getResources()
+                                    .getDimensionPixelSize(R.dimen.hq_button_min_touch_target_size);
+                    Rect hitRect = new Rect();
+                    mHighQualityToggleButton.getHitRect(hitRect);
+
+                    int hitHeight = hitRect.height();
+                    int hitWidth = hitRect.width();
+
+                    if (hitHeight < minSize) {
+                        // Clamp to a minimum of 1, so we're never smaller than the required size
+                        int padding = Math.max((minSize - hitHeight) / 2, 1);
+                        hitRect.top -= padding;
+                        hitRect.bottom += padding;
+                    }
+
+                    if (hitWidth < minSize) {
+                        // Clamp to a minimum of 1, so we're never smaller than the required size
+                        int padding = Math.max((minSize - hitWidth / 2), 1);
+                        hitRect.left -= padding;
+                        hitRect.right += padding;
+                    }
+
+                    hqButtonParent.setTouchDelegate(
+                            new TouchDelegate(hitRect, mHighQualityToggleButton));
+                });
+
         // subscribe to layout changes of the texture view container so we can
         // resize the texture view once the container has been drawn with the new
         // margins
