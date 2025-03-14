@@ -104,8 +104,10 @@ public class DeviceAsWebcamPreview extends FragmentActivity {
     private View mFocusIndicator;
     private ZoomController mZoomController = null;
     private ImageButton mToggleCameraButton;
-    private ImageButton mHighQualityToggleButton;
     private CameraPickerDialog mCameraPickerDialog;
+
+    private ImageButton mHighQualityToggleButton;
+    private boolean mIsWaitingOnHQToggle = false; // Read/Write on main thread only.
 
     private UserPrefs mUserPrefs;
 
@@ -511,11 +513,16 @@ public class DeviceAsWebcamPreview extends FragmentActivity {
                 createCameraListForPicker(), mWebcamController.getCameraInfo().getCameraId());
 
         updateHighQualityButtonState(mWebcamController.isHighQualityModeEnabled());
-        mHighQualityToggleButton.setOnClickListener(v -> {
-            // Disable the toggle button to prevent spamming
-            mHighQualityToggleButton.setEnabled(false);
-            toggleHQWithWarningIfNeeded();
-        });
+        mHighQualityToggleButton.setOnClickListener(
+                v -> {
+                    // Don't do anything if we're waiting on HQ mode to be toggled. This prevents
+                    // queuing up of HQ toggle events in case WebcamController gets delayed.
+                    if (mIsWaitingOnHQToggle) {
+                        return;
+                    }
+                    mIsWaitingOnHQToggle = true;
+                    toggleHQWithWarningIfNeeded();
+                });
     }
 
     private void toggleHQWithWarningIfNeeded() {
@@ -563,7 +570,7 @@ public class DeviceAsWebcamPreview extends FragmentActivity {
                                 rotateUiByRotationDegrees(
                                         mWebcamController.getCurrentRotation(),
                                         /*animationDuration*/ 0L);
-                                mHighQualityToggleButton.setEnabled(true);
+                                mIsWaitingOnHQToggle = false;
                             });
                 };
         mWebcamController.setHighQualityModeEnabled(enabled, callback);
